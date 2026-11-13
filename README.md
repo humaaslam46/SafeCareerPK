@@ -1,109 +1,147 @@
-# Job Scam Shield — Complete Build (Days 1–5)
+# SafeCareerPK
 
-A working prototype for the Alibaba Cloud AI Hackathon Pakistan 2026,
-Open Innovation track. Detects job scam patterns specific to Pakistan —
-fee extraction, fake certification platforms, unsafe interview
-arrangements, and wage theft — using a layered rule engine + AI +
-legitimacy verification system, plus two crowdsourced reporting layers.
+**Spot fake job postings before they cost you money, time, or safety.**
 
-## IMPORTANT — a bug fixed on the final pass
+SafeCareerPK is a web app that helps job seekers in Pakistan evaluate job postings. It combines a rule engine tuned to local scam patterns, AI tone analysis, live domain verification, and two crowdsourced reporting layers, then explains each verdict in plain language.
 
-During final regression testing, a real scoring bug was found and
-fixed: when a posting had no email address to check, the legitimacy
-layer's "neutral, nothing to check" result of 0 was being averaged in
-as if it were positive evidence of safety — which was quietly pulling
-down confident high-risk scores (a clear scam post scored 83 instead of
-100). Fixed in `server.js` / `legitimacyCheck.js`: the legitimacy score
-is now only included in the final average when it actually had
-something to evaluate (`checked: true`). Confirmed fixed by re-running
-the full regression suite — see test results in this project's build
-history if you want to verify again yourself.
+Built for the **Alibaba Cloud AI Hackathon Pakistan 2026** (Open Innovation track).
 
-## Feature summary
+![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React-Vite-61DAFB?logo=react&logoColor=black)
+![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)
 
-1. **Rule-based scam detection** — fee requests, urgency language,
-   unrealistic salary, generic contact patterns, and 21 interview-safety
-   patterns (the project's core safety differentiator).
-2. **OCR screenshot scanning** — fully offline (no external CDN
-   dependency, fixed specifically to avoid a live-demo failure risk).
-3. **Genuine AI tone-analysis layer** (Claude API) — catches
-   carefully-worded scams that dodge obvious keywords. Requires your own
-   `ANTHROPIC_API_KEY` (see below); app works fully without it.
-4. **Legitimacy Check** — real, live DNS domain verification, known
-   scam/legitimate platform lists, and a "Positive Signals" section that
-   shows genuine evidence in a posting's favor, not just red flags.
-5. **Community Trust Layer** — crowdsourced, live-updating platform
-   trust scores. Fully functional, not a mockup.
-6. **Wage-Theft Log** — a shared record for the "real work, no payment"
-   failure mode. Also fully functional.
+---
 
-## How to run it
+## Why this exists
 
-### 1. Backend
+Job scams in Pakistan follow recognizable patterns: upfront "registration" fees, fake certification platforms, interviews at private homes, and work that is delivered but never paid for. Generic scam checkers miss these local patterns. SafeCareerPK is built around them.
+
+## Features
+
+| Feature | What it does |
+|---|---|
+| **Posting Scanner** | Scores a posting by checking for fee requests, urgency language, unrealistic salaries, generic contact patterns, and 21 interview-safety red flags. |
+| **Screenshot scanning (OCR)** | Reads postings shared as images (for example on WhatsApp). Runs fully offline, with no external CDN dependency. |
+| **AI tone analysis** | Uses Google Gemini to catch carefully worded scams that avoid obvious keywords. Optional: the app works without it. |
+| **Legitimacy Check** | Live DNS verification of email domains, known scam and legitimate platform lists, and a "Positive Signals" section showing genuine evidence in a posting's favor. |
+| **Community Trust** | Crowdsourced, live-updating trust scores for hiring platforms and companies. |
+| **Wage-Theft Log** | A shared record for the "real work, no payment" failure mode. |
+| **Resume Advice** | Static tips written for the Pakistani job market, plus AI-generated suggestions tailored to a job title or field. |
+
+## How scoring works
+
+Each posting passes through layered checks, and the final risk score combines them:
+
+1. **Rule engine:** keyword and pattern checks for fees, urgency, salary, contact method, and interview safety.
+2. **AI layer (optional):** Gemini reviews tone and phrasing for subtle manipulation.
+3. **Legitimacy layer:** DNS lookup and platform lists. This layer is only included in the average when it actually had something to evaluate (for example, when the posting contains an email address), so an empty check never dilutes a confident high-risk result.
+
+Results are grouped into **High Risk**, **Caution**, and **Low Risk**, each shown with the reasons behind it.
+
+## Tech stack
+
+- **Frontend:** React, Vite, Recharts
+- **Backend:** Node.js, Express
+- **AI:** Google Gemini API (`@google/genai`)
+- **OCR:** offline, bundled with the app
+
+## Project structure
+
 ```
+SafeCareerPK/
+├── backend/
+│   ├── server.js            # Express server and routes
+│   ├── ruleEngine.js        # Rule-based scam detection
+│   ├── aiAnalysis.js        # AI tone analysis
+│   ├── legitimacyCheck.js   # DNS and platform verification
+│   ├── ocr.js               # Screenshot text extraction
+│   ├── communityTrust.js    # Crowdsourced trust scores
+│   ├── wageTheft.js         # Wage-theft log
+│   ├── resumeAdvice.js      # Resume tips (static + AI)
+│   └── env.js               # Environment configuration
+└── frontend/                # React + Vite app
+```
+
+## Getting started
+
+### Prerequisites
+- Node.js 18 or later
+- A Google Gemini API key (optional, only needed for the AI features): get one from [Google AI Studio](https://aistudio.google.com/)
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/humaaslam46/SafeCareerPK.git
+cd SafeCareerPK
+```
+
+### 2. Start the backend
+```bash
 cd backend
 npm install
+```
+
+Create a `backend/.env` file:
+```
+GEMINI_API_KEY=your_key_here
+```
+
+Then run:
+```bash
 npm start
 ```
-Runs at http://localhost:5000
+The API runs at `http://localhost:5000`.
 
-### 2. Frontend (separate terminal)
-```
+### 3. Start the frontend
+In a second terminal:
+```bash
 cd frontend
 npm install
 npm run dev
 ```
-Runs at http://localhost:5173 — three tabs: Posting Scanner, Community
-Trust, Wage-Theft Log.
+The app runs at `http://localhost:5173`.
 
-## Enabling the AI layer
+> **Note:** The `.env` file is ignored by Git. Never commit your API key.
 
-1. Get a key from https://console.anthropic.com
-2. In `backend/`, create `.env`:
-   ```
-   ANTHROPIC_API_KEY=your-key-here
-   ```
-3. `npm install dotenv`, then add `require("dotenv").config();` as the
-   first line of `server.js`.
+## Using the app
 
-Do this well before your actual demo, not the night before — you want
-to see real AI output at least once ahead of time.
+The interface has four tabs: **Posting Scanner**, **Community Trust**, **Wage-Theft Log**, and **Resume Advice**.
 
-## Demo script
+### Sample postings to try
 
-See **`JobScamShield_Demo_Script.docx`** — the full Day 5 deliverable:
-a timed walkthrough (opening hook → live demo sequence → technical
-explanation → responsible-AI close), an anticipated judge Q&A table,
-and a pre-demo checklist.
+**High risk**
+> Urgent hiring females required, no investment, work from home. Please pay registration fee of Rs 2000 to confirm your seat. Contact us only on WhatsApp. Interview will be held at my house, come alone.
 
-## Verified test posts
+**Low risk** (use a real domain, since a made-up one is correctly flagged as unresolvable)
+> We are hiring a Junior Frontend Developer, Lahore. Salary: PKR 60,000-80,000 based on experience. Please email your CV to careers@microsoft.com. Interview will be conducted at our office in DHA Phase 5.
 
-**High Risk:**
-> Urgent hiring females required, no investment, work from home. Please
-> pay registration fee of Rs 2000 to confirm your seat. Contact us only
-> on WhatsApp. Interview will be held at my house, come alone.
+**Caution** (mixed signals)
+> Urgent hiring! No experience needed, apply today only. Please send your CV to careers@microsoft.com.
 
-**Low Risk (use a real domain like microsoft.com, not a made-up one —
-a fake domain will correctly get flagged as unresolvable):**
-> We are hiring a Junior Frontend Developer, Lahore. Salary: PKR
-> 60,000-80,000 based on experience. Please email your CV to
-> careers@microsoft.com. Interview will be conducted at our office in
-> DHA Phase 5.
+## Known limitations
 
-**Caution (mixed signals):**
-> Urgent hiring! No experience needed, apply today only. Please send
-> your CV to careers@microsoft.com.
+- **In-memory storage:** Community Trust and the Wage-Theft Log reset when the server restarts. This was a deliberate hackathon-scope choice. The path to production is to replace the in-memory arrays with a database such as MongoDB.
+- **AI features need a key:** without `GEMINI_API_KEY`, the rule engine, legitimacy check, OCR, and static resume tips still work. Only the AI tone analysis and personalized resume tips are disabled.
 
-## Architecture note
+## Roadmap
 
-Community Trust and Wage-Theft currently use in-memory storage (resets
-on server restart) rather than a database — a deliberate hackathon-scope
-choice. Worth saying so plainly if asked; the path to production is
-straightforward (swap the in-memory arrays for MongoDB collections).
+- Persistent storage for community reports
+- User accounts and report moderation
+- Urdu-language interface and postings
+- Browser extension for scanning postings in place
 
-## Design language
+## Design
 
-Every screen shares the same "official stamp/mohar" visual motif for
-verdicts and trust scores — meant to echo the authenticity-verification
-culture familiar in Pakistan, and to make the whole app read as one
-coherent system.
+All verdicts and trust scores share one visual motif, an official stamp (*mohar*), echoing the authenticity-verification culture familiar in Pakistan and keeping the app consistent across screens.
+
+## Contributing
+
+Issues and pull requests are welcome. If you've encountered a scam pattern that the rule engine misses, opening an issue with an anonymized example is especially helpful.
+
+## License
+
+See the [LICENSE](LICENSE) file for details.
+
+## Author
+
+**Huma Aslam**
+GitHub: [@humaaslam46](https://github.com/humaaslam46)
